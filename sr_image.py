@@ -2,8 +2,8 @@ __author__ = 'Sherwin'
 
 import numpy as np
 from PIL import Image
-from util import sr_image_util
-from factory.sr_method_factory import SRMethodFactory
+from sr_util import sr_image_util
+from sr_factory.sr_method_factory import SRMethodFactory
 
 class SRImage(object):
 
@@ -13,26 +13,31 @@ class SRImage(object):
 
     @property
     def size(self):
+        """Get the size of the SR image.
+
+        @return: size of the SR image
+        @rtype: list
+        """
         return self._size
 
-    def getImage(self):
+    def get_image(self):
         return self._image
 
     def reconstruct(self, ratio, method_type):
-        sr_method = SRMethodFactory.createMethod(method_type)
+        sr_method = SRMethodFactory.create_method(method_type)
         return sr_method.reconstruct(ratio, self)
 
     def _downgrade(self, ratio):
-        size = sr_image_util.createSize(self._size, ratio)
+        size = sr_image_util.create_size(self._size, ratio)
         downgraded_image = self._image.resize(size, Image.BILINEAR)
         return SRImage(downgraded_image.resize(self._size, Image.BILINEAR))
 
-    def getPyramid(self):
+    def get_pyramid(self, level, ratio):
         pyramid = []
-        ratio = 1.0
-        for level in range(1, 7):
-            ratio *= 1.25
-            pyramid.append(self._downgrade(ratio))
+        r = 1.0
+        for _ in range(level):
+            r *= ratio
+            pyramid.append(self._downgrade(r))
         return pyramid
 
     def patchify(self, patch_size):
