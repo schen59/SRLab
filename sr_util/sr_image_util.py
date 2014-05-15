@@ -20,17 +20,16 @@ def create_size(size, ratio):
     new_size = map(int, [dimension*ratio for dimension in size])
     return new_size
 
-def create_gaussian_kernel(size=5, sigma=1.0):
+def create_gaussian_kernel(radius=2, sigma=1.0):
     """Create a 2D gaussian kernel.
 
-    @param size: the size of the kernel
-    @type size: int
+    @param radius: the radius of the kernel
+    @type radius: int
     @param sigma: the sigma of the kernel
     @type sigma: float
     @return: a normalized gaussian kernel
     @rtype: ndarray
     """
-    radius = size / 2
     y, x = np.mgrid[-radius:radius+1, -radius:radius+1]
     unnormalized_kernel = np.exp(-(x**2 + y**2)//2*sigma*sigma)
     return unnormalized_kernel / np.sum(unnormalized_kernel)
