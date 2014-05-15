@@ -14,7 +14,7 @@ class TestSRImageUtil(unittest.TestCase):
         self.assertEqual([50, 50], sr_image_util.create_size([100, 100], 0.5))
 
     def test_gaussian_kernel(self):
-        gaussian_kernel = sr_image_util.create_gaussian_kernel(5, 0.1)
+        gaussian_kernel = sr_image_util.create_gaussian_kernel(2, 0.1)
         expected_size = (5, 5)
         self.assertEqual(expected_size, np.shape(gaussian_kernel))
         normalized = (np.sum(gaussian_kernel)>0.99 and np.sum(gaussian_kernel)<=1.01)
