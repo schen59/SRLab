@@ -28,7 +28,7 @@ def create_gaussian_kernel(radius=2, sigma=1.0):
     @param sigma: the sigma of the kernel
     @type sigma: float
     @return: a normalized gaussian kernel
-    @rtype: ndarray
+    @rtype: L{numpy.array}
     """
     y, x = np.mgrid[-radius:radius+1, -radius:radius+1]
     unnormalized_kernel = np.exp(-(x**2 + y**2)//2*sigma*sigma)
