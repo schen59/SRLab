@@ -43,5 +43,10 @@ class TestSRImageUtil(unittest.TestCase):
         with self.assertRaises(SRException):
             sr_image_util.patchify(array, [3, 4])
 
+    def test_normalize(self):
+        array = np.array([[1, 2, 3], [4, 5, 6]])
+        normalized_array = sr_image_util.normalize(array)
+        self.assertTrue(np.array_equal(np.array([1.0, 1.0]), np.sum(normalized_array, 1)))
+
 if __name__ == "__main__":
     unittest.main()
