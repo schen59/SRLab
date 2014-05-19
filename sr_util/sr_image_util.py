@@ -130,6 +130,15 @@ def unpatchify(patches, output_array_size, kernel, overlap=1):
     padded_array /= weight
     return padded_array[patch_radius:padded_array_height-patch_radius+1, patch_radius:padded_array_width-patch_radius+1]
 
+def normalize(array):
+    """Normalize the row vector of a 2D array.
+
+    @param array: 2D array
+    @type array: L{numpy.array}
+    @return: normalized 2D array
+    @rtype: L{numpy.array}
+    """
+    return array.astype(float) / np.sum(array, axis=1)[:, np.newaxis]
 
 
 
