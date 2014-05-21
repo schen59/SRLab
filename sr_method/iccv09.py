@@ -7,10 +7,10 @@ DEFAULT_PATCH_SIZE = [5, 5]
 class ICCV09(object):
 
     def __init__(self):
-        self.method_type = "iccv09"
+        self._method_type = "iccv09"
 
     def get_method_type(self):
-        return self.method_type
+        return self._method_type
 
     def reconstruct(self, ratio, sr_image):
         """Reconstruct the SR image by the given ratio.
