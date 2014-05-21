@@ -1,8 +1,7 @@
 __author__ = 'Sherwin'
 
 import numpy as np
-
-DEFAULT_PATCH_SIZE = [5, 5]
+from sr_dataset import SRDataSet
 
 class ICCV09(object):
 
@@ -22,30 +21,6 @@ class ICCV09(object):
         @return: reconstructed SR image
         @rtype: L{sr_image.SRImage}
         """
+        sr_dataset = SRDataSet.from_sr_image(sr_image)
+        pass
 
-        patches_without_dc = self._get_patches_without_dc(sr_image)
-
-    def _get_patches_without_dc(self, sr_image):
-        """Get patches without dc from the given SR image.
-
-        @param sr_image: SR image
-        @type sr_image: L{sr_image.SRImage}
-        @return: patches from the given SR image without DC component
-        @rtype: L{numpy.array}
-        """
-        patches = sr_image.patchify(DEFAULT_PATCH_SIZE)
-        patches_dc = self._get_dc(patches)
-        return patches - patches_dc
-
-    def _get_dc(self, patches):
-        """Get the dc component of the row major order patches.
-
-        @param patches: row major order patches
-        @type patches: L{numpy.array}
-        @return: dc component of all the patches
-        @rtype: L{numpy.array}
-        """
-        h, w = np.shape(patches)
-        patches_dc = np.mean(patches, axis=1)
-        patches_dc = np.tile(patches_dc, [h, 1]).transpose()
-        return patches_dc

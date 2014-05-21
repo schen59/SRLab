@@ -4,12 +4,31 @@ import numpy as np
 from scipy import spatial
 from sr_util import sr_image_util
 
+DEFAULT_RECONSTRUCT_LEVEL = 6
+DEFAULT_RECONSTRUCT_RATIO = 1.25
+
 class SRDataSet(object):
 
     def __init__(self, low_res_patches, high_res_patches):
         self._low_res_patches = low_res_patches
         self._high_res_patches = high_res_patches
         self._kd_tree = spatial.KDTree(self.low_res_patches)
+
+    @classmethod
+    def from_sr_image(cls, sr_image):
+        """Create a SRDataset object from a SRImage object.
+
+        @param sr_image:
+        @type sr_image: L{sr_image.SRImage}
+        @return: SRDataset object
+        @rtype: L{sr_dataset.SRDataset}
+        """
+        high_res_patches = sr_image_util.get_patches_without_dc(sr_image)
+        sr_dataset = SRDataSet(high_res_patches, high_res_patches)
+        for downgraded_sr_image in sr_image.get_pyramid(DEFAULT_RECONSTRUCT_LEVEL, DEFAULT_RECONSTRUCT_RATIO):
+            low_res_patches = sr_image_util.get_patches_without_dc(downgraded_sr_image)
+            sr_dataset.add(low_res_patches, high_res_patches)
+        return sr_dataset
 
     @property
     def low_res_patches(self):
