@@ -17,6 +17,8 @@ class TestSRImage(unittest.TestCase):
     def test_get_pyramid(self):
         pyramid = self.sr_image.get_pyramid(6, 1.25)
         self.assertEqual(len(pyramid), 6)
+        for downgraded_sr_image in pyramid:
+            self.assertEqual(self.sr_image.size, downgraded_sr_image.size)
 
     def test_patchify(self):
         patches = self.sr_image.patchify([5, 5])
