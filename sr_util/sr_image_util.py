@@ -141,7 +141,7 @@ def normalize(array):
     """
     return array.astype(float) / np.sum(array, axis=1)[:, np.newaxis]
 
-def get_patches_without_dc(self, sr_image):
+def get_patches_without_dc(sr_image):
     """Get patches without dc from the given SR image.
 
     @param sr_image: SR image
@@ -149,11 +149,22 @@ def get_patches_without_dc(self, sr_image):
     @return: patches from the given SR image without DC component
     @rtype: L{numpy.array}
     """
+    patches_without_dc, patches_dc = get_patches_from(sr_image)
+    return patches_without_dc
+
+def get_patches_from(sr_image):
+    """Get patches without dc as well as dc from the given SRImage.
+
+    @param sr_image: an instance of SRImage
+    @type sr_image: L{sr_image.SRImage}
+    @return: patches without dc as well as dc
+    @rtype: 2 element tuple
+    """
     patches = sr_image.patchify(DEFAULT_PATCH_SIZE)
     patches_dc = get_dc(patches)
-    return patches - patches_dc
+    return patches - patches_dc, patches_dc
 
-def get_dc(self, patches):
+def get_dc(patches):
     """Get the dc component of the row major order patches.
 
     @param patches: row major order patches
@@ -163,7 +174,7 @@ def get_dc(self, patches):
     """
     h, w = np.shape(patches)
     patches_dc = np.mean(patches, axis=1)
-    patches_dc = np.tile(patches_dc, [h, 1]).transpose()
+    patches_dc = np.tile(patches_dc, [w, 1]).transpose()
     return patches_dc
 
 

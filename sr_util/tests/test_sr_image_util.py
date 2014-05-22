@@ -1,6 +1,7 @@
 __author__ = 'Sherwin'
 
 import unittest
+import mock
 import numpy as np
 from sr_util import sr_image_util
 from sr_exception.sr_exception import SRException
@@ -47,6 +48,29 @@ class TestSRImageUtil(unittest.TestCase):
         array = np.array([[1, 2, 3], [4, 5, 6]])
         normalized_array = sr_image_util.normalize(array)
         self.assertTrue(np.array_equal(np.array([1.0, 1.0]), np.sum(normalized_array, 1)))
+
+    def test_get_patches_from(self):
+        sr_image = mock.Mock()
+        sr_image.patchify.return_value = np.array([[1, 2, 3], [4, 5, 6]])
+        patches_without_dc, patches_dc = sr_image_util.get_patches_from(sr_image)
+        expected_patches_without_dc = np.array([[-1, 0, 1], [-1, 0, 1]])
+        expected_patches_dc = np.array([[2, 2, 2], [5, 5, 5]])
+        self.assertTrue(np.array_equal(expected_patches_without_dc, patches_without_dc))
+        self.assertTrue(np.array_equal(expected_patches_dc, patches_dc))
+
+    def test_get_patches_without_dc(self):
+        sr_image = mock.Mock()
+        sr_image.patchify.return_value = np.array([[1, 2, 3], [4, 5, 6]])
+        patches_without_dc = sr_image_util.get_patches_without_dc(sr_image)
+        expected_patches_without_dc = np.array([[-1, 0, 1], [-1, 0, 1]])
+        self.assertTrue(np.array_equal(expected_patches_without_dc, patches_without_dc))
+
+    def test_get_dc(self):
+        patches = np.array([[1, 2, 3], [4, 5, 6]])
+        patches_dc = sr_image_util.get_dc(patches)
+        expected_patches_dc = np.array([[2, 2, 2], [5, 5, 5]])
+        self.assertTrue(np.array_equal(expected_patches_dc, patches_dc))
+
 
 if __name__ == "__main__":
     unittest.main()
