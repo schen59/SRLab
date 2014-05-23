@@ -85,8 +85,10 @@ def patchify(array, patch_size, interval=1):
     padded_height, padded_width = np.shape(pad_array)
     patches_y, patches_x = np.mgrid[patch_radius:padded_width-patch_radius, patch_radius:padded_height-patch_radius]
     patches_number = len(patches_y.flat)
-    patches_y_vector = np.tile(patch_y.flatten(), (patches_number, 1)) + np.tile(patches_y.flatten(), (patch_dimension, 1)).transpose()
-    patches_x_vector = np.tile(patch_x.flatten(), (patches_number, 1)) + np.tile(patches_x.flatten(), (patch_dimension, 1)).transpose()
+    patches_y_vector = np.tile(patch_y.flatten(), (patches_number, 1)) + np.tile(patches_y.flatten(),
+                                                                                 (patch_dimension, 1)).transpose()
+    patches_x_vector = np.tile(patch_x.flatten(), (patches_number, 1)) + np.tile(patches_x.flatten(),
+                                                                                 (patch_dimension, 1)).transpose()
     index = np.ravel_multi_index([patches_y_vector, patches_x_vector], (padded_height, padded_width))
     return np.reshape(pad_array.flatten()[index], (patches_number, patch_dimension))
 
@@ -107,7 +109,7 @@ def unpatchify(patches, output_array_size, kernel, overlap=1):
     patches_number, patch_dimension = np.shape(patches)
     if not _valid_patch_dimension(patch_dimension):
         raise SRException(INVALID_PATCH_DIMENSION % patch_dimension)
-    if patch_dimension != np.shape(np.flatten())[0]:
+    if patch_dimension != np.shape(kernel.flatten())[0]:
         raise "Invalid kernel size, kernel size should be equal to patch size."
     patch_width = int(patch_dimension**(.5))
     patch_radius = patch_width / 2;

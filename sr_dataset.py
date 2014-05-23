@@ -4,8 +4,8 @@ import numpy as np
 from scipy import spatial
 from sr_util import sr_image_util
 
-DEFAULT_RECONSTRUCT_LEVEL = 6
-DEFAULT_RECONSTRUCT_RATIO = 1.25
+DEFAULT_PYRAMID_LEVEL = 6
+DEFAULT_DOWNGRADE_RATIO = 1.25
 
 class SRDataSet(object):
 
@@ -25,7 +25,7 @@ class SRDataSet(object):
         """
         high_res_patches = sr_image_util.get_patches_without_dc(sr_image)
         sr_dataset = SRDataSet(high_res_patches, high_res_patches)
-        for downgraded_sr_image in sr_image.get_pyramid(DEFAULT_RECONSTRUCT_LEVEL, DEFAULT_RECONSTRUCT_RATIO):
+        for downgraded_sr_image in sr_image.get_pyramid(DEFAULT_PYRAMID_LEVEL, DEFAULT_DOWNGRADE_RATIO):
             low_res_patches = sr_image_util.get_patches_without_dc(downgraded_sr_image)
             sr_dataset.add(low_res_patches, high_res_patches)
         return sr_dataset
@@ -49,6 +49,16 @@ class SRDataSet(object):
         self._low_res_patches = np.concatenate((self._low_res_patches, low_res_patches))
         self._high_res_patches = np.concatenate((self._high_res_patches, high_res_patches))
         self._kd_tree = spatial.KDTree(self._low_res_patches)
+
+    def merge(self, sr_dataset):
+        """Merge with the given dataset.
+
+        @param sr_dataset: an instance of SRDataset
+        @type sr_dataset: L{sr_dataset.SRDataset}
+        """
+        low_res_patches = sr_dataset.low_res_patches
+        high_res_patches = sr_dataset.high_res_patches
+        self.add(low_res_patches, high_res_patches)
 
     def query(self, low_res_patches, neighbors=1):
         """Query the high resolution patches for the given low resolution patches.

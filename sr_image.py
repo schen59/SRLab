@@ -37,6 +37,29 @@ class SRImage(object):
         sr_method = SRMethodFactory.create_method(method_type)
         return sr_method.reconstruct(ratio, self)
 
+    def resize(self, ratio):
+        """Return a resized copy of the original SRImage by the given resize ratio.
+
+        @param ratio: resize ratio
+        @type ratio: float
+        @return: a resized copy of the original SRImage
+        @rtype: L{sr_image.SRImage}
+        """
+        size = sr_image_util.create_size(self._size, ratio)
+        resized_image = self._image.resize(size, Image.BILINEAR)
+        return SRImage(resized_image)
+
+    def putdata(self, data):
+        """Update the SRImage instance by the given data.
+
+        @param data: two dimensional image data
+        @type data: L{numpy.array}
+        """
+        size = np.shape(data)
+        if self._size != size:
+            raise "Invalid image data, data size not equal to image size %s." % self._size
+        self._image.putdata(list(data.flatten()))
+
     def _downgrade(self, ratio, kernel):
         """Downgrade the original SR image with the given ratio and blur kernel.
 
