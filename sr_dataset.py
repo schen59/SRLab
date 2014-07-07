@@ -4,7 +4,7 @@ import numpy as np
 from scipy import spatial
 from sr_util import sr_image_util
 
-DEFAULT_PYRAMID_LEVEL = 6
+DEFAULT_PYRAMID_LEVEL = 3
 DEFAULT_DOWNGRADE_RATIO = 1.25
 
 class SRDataSet(object):
@@ -12,7 +12,8 @@ class SRDataSet(object):
     def __init__(self, low_res_patches, high_res_patches):
         self._low_res_patches = low_res_patches
         self._high_res_patches = high_res_patches
-        self._kd_tree = spatial.KDTree(self.low_res_patches)
+        self._kd_tree = None
+        self._need_update = True
 
     @classmethod
     def from_sr_image(cls, sr_image):
@@ -38,6 +39,10 @@ class SRDataSet(object):
     def high_res_patches(self):
         return self._high_res_patches
 
+    def _update(self):
+        self._kd_tree = spatial.KDTree(self._low_res_patches)
+        self._need_update = False
+
     def add(self, low_res_patches, high_res_patches):
         """Add low_res_patches -> high_res_patches mapping to the dataset.
 
@@ -48,7 +53,6 @@ class SRDataSet(object):
         """
         self._low_res_patches = np.concatenate((self._low_res_patches, low_res_patches))
         self._high_res_patches = np.concatenate((self._high_res_patches, high_res_patches))
-        self._kd_tree = spatial.KDTree(self._low_res_patches)
 
     def merge(self, sr_dataset):
         """Merge with the given dataset.
@@ -60,7 +64,7 @@ class SRDataSet(object):
         high_res_patches = sr_dataset.high_res_patches
         self.add(low_res_patches, high_res_patches)
 
-    def query(self, low_res_patches, neighbors=1):
+    def query(self, low_res_patches, neighbors=1, eps=0.0):
         """Query the high resolution patches for the given low resolution patches.
 
         @param low_res_patches: low resolution patches
@@ -70,7 +74,9 @@ class SRDataSet(object):
         @return: high resolution patches for the given low resolution patches
         @rtype: L{numpy.array}
         """
-        distances, indices = self._kd_tree.query(low_res_patches, neighbors)
+        if self._need_update:
+            self._update()
+        distances, indices = self._kd_tree.query(low_res_patches, neighbors, eps)
         neighbor_patches = self.high_res_patches[indices]
         return self._merge_high_res_patches(neighbor_patches, distances) if neighbors > 1 else neighbor_patches
 

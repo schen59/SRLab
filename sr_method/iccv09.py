@@ -29,7 +29,9 @@ class ICCV09(object):
         reconstructed_sr_image = sr_image
         r = ratio ** (1.0/DEFAULT_RECONSTRUCT_LEVEL)
         for level in range(DEFAULT_RECONSTRUCT_LEVEL):
+            print level
             reconstructed_sr_image = self._reconstruct(r, reconstructed_sr_image, sr_dataset)
+            reconstructed_sr_image = sr_image_util.back_project(reconstructed_sr_image, sr_image, 3)
             new_sr_dataset = SRDataSet.from_sr_image(reconstructed_sr_image)
             sr_dataset.merge(new_sr_dataset)
         return reconstructed_sr_image
@@ -47,10 +49,11 @@ class ICCV09(object):
         @rtype: L{sr_image.SRImage}
         """
         resized_sr_image = sr_image.resize(ratio)
-        patches_without_dc, patches_dc = sr_image_util.get_patches_from(resized_sr_image)
-        high_res_patches_without_dc = sr_dataset.query(patches_without_dc, neighbors=1)
+        patches_without_dc, patches_dc = sr_image_util.get_patches_from(resized_sr_image, interval=4)
+        high_res_patches_without_dc = sr_dataset.query(patches_without_dc, neighbors=9)
+        print "done"
         high_res_patches = high_res_patches_without_dc + patches_dc
-        high_res_data = sr_image_util.unpatchify(high_res_patches, self._kernel)
+        high_res_data = sr_image_util.unpatchify(high_res_patches, resized_sr_image.size, self._kernel)
         resized_sr_image.putdata(high_res_data)
         return resized_sr_image
 

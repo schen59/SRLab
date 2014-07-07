@@ -2,11 +2,13 @@ __author__ = 'Sherwin'
 
 import numpy as np
 from PIL import Image
+from PIL.ImageFilter import Kernel
 from sr_exception.sr_exception import SRException
 
 DEFAULT_PATCH_SIZE = [5, 5]
 INVALID_PATCH_SIZE_ERR = "Invalid patch size %s, patch should be square with odd size."
 INVALID_PATCH_DIMENSION = "Invalid patch dimension %s, patch should be square with odd size."
+ALPHA = 2 ** (1.0/3)
 
 def create_size(size, ratio):
     """Create a new size which the new size equals size*ratio.
@@ -80,10 +82,11 @@ def patchify(array, patch_size, interval=1):
     patch_width = patch_size[0]
     patch_dimension = patch_width * patch_width
     patch_radius = patch_width / 2
-    patch_y, patch_x = np.mgrid[-patch_radius:patch_radius+1:interval, -patch_radius:patch_radius+1:interval]
+    patch_y, patch_x = np.mgrid[-patch_radius:patch_radius+1, -patch_radius:patch_radius+1]
     pad_array = np.pad(array, (patch_radius, patch_radius), 'reflect')
     padded_height, padded_width = np.shape(pad_array)
-    patches_y, patches_x = np.mgrid[patch_radius:padded_width-patch_radius, patch_radius:padded_height-patch_radius]
+    patches_y, patches_x = np.mgrid[patch_radius:padded_height-patch_radius:interval,
+                           patch_radius:padded_width-patch_radius:interval]
     patches_number = len(patches_y.flat)
     patches_y_vector = np.tile(patch_y.flatten(), (patches_number, 1)) + np.tile(patches_y.flatten(),
                                                                                  (patch_dimension, 1)).transpose()
@@ -114,24 +117,24 @@ def unpatchify(patches, output_array_size, kernel, overlap=1):
     patch_width = int(patch_dimension**(.5))
     patch_radius = patch_width / 2;
     interval = patch_width - overlap
-    padded_array_size = [d+patch_width for d in output_array_size]
+    padded_array_size = [d + 2*patch_radius for d in output_array_size]
     padded_array_height, padded_array_width = padded_array_size
     padded_array = np.zeros(padded_array_size)
     weight = np.zeros(padded_array_size)
-    patches_y, patches_x = np.mgrid[patch_radius:padded_array_width-patch_radius:interval,
-                           patch_radius:padded_array_height-patch_radius:interval]
+    patches_y, patches_x = np.mgrid[patch_radius:padded_array_height-patch_radius:interval,
+                           patch_radius:padded_array_width-patch_radius:interval]
     h, w = np.shape(patches_x)
     patch_idx = 0
     for i in range(h):
         for j in range(w):
             patch_x = patches_x[i, j]
             patch_y = patches_y[i, j]
-            padded_array[patch_y-patch_radius:patch_y+patch_radius+1, patch_x-patch_radius:patch_x+patch_radius+1] = \
+            padded_array[patch_y-patch_radius:patch_y+patch_radius+1, patch_x-patch_radius:patch_x+patch_radius+1] += \
                 np.reshape(patches[patch_idx], [patch_width, patch_width]) * kernel
             weight[patch_y-patch_radius:patch_y+patch_radius+1, patch_x-patch_radius:patch_x+patch_radius+1] += kernel
             patch_idx += 1
     padded_array /= weight
-    return padded_array[patch_radius:padded_array_height-patch_radius+1, patch_radius:padded_array_width-patch_radius+1]
+    return padded_array[patch_radius:padded_array_height-patch_radius, patch_radius:padded_array_width-patch_radius]
 
 def normalize(array):
     """Normalize the row vector of a 2D array.
@@ -143,7 +146,7 @@ def normalize(array):
     """
     return array.astype(float) / np.sum(array, axis=1)[:, np.newaxis]
 
-def get_patches_without_dc(sr_image):
+def get_patches_without_dc(sr_image, patch_size=DEFAULT_PATCH_SIZE, interval=1):
     """Get patches without dc from the given SR image.
 
     @param sr_image: SR image
@@ -151,10 +154,10 @@ def get_patches_without_dc(sr_image):
     @return: patches from the given SR image without DC component
     @rtype: L{numpy.array}
     """
-    patches_without_dc, patches_dc = get_patches_from(sr_image)
+    patches_without_dc, patches_dc = get_patches_from(sr_image, patch_size, interval)
     return patches_without_dc
 
-def get_patches_from(sr_image):
+def get_patches_from(sr_image, patch_size=DEFAULT_PATCH_SIZE, interval=1):
     """Get patches without dc as well as dc from the given SRImage.
 
     @param sr_image: an instance of SRImage
@@ -162,7 +165,7 @@ def get_patches_from(sr_image):
     @return: patches without dc as well as dc
     @rtype: 2 element tuple
     """
-    patches = sr_image.patchify(DEFAULT_PATCH_SIZE)
+    patches = sr_image.patchify(patch_size, interval)
     patches_dc = get_dc(patches)
     return patches - patches_dc, patches_dc
 
@@ -178,6 +181,34 @@ def get_dc(patches):
     patches_dc = np.mean(patches, axis=1)
     patches_dc = np.tile(patches_dc, [w, 1]).transpose()
     return patches_dc
+
+def back_project(high_res_sr_img, low_res_sr_img, iteration):
+    high_res_sr_img_height = high_res_sr_img.size[0]
+    low_res_sr_img_height = low_res_sr_img.size[0]
+    ratio = float(high_res_sr_img_height) / low_res_sr_img_height
+    sigma = ALPHA**ratio / 3.0
+    g_kernel = gaussian_kernel(sigma=sigma)
+    back_projected_sr_img = high_res_sr_img
+    for i in range(iteration):
+        downgraded_sr_image = back_projected_sr_img.downgrade(low_res_sr_img.size, g_kernel)
+        diff_sr_image = low_res_sr_img - downgraded_sr_image
+        upgraded_diff_sr_image = diff_sr_image.upgrade(back_projected_sr_img.size, g_kernel)
+        back_projected_sr_img = back_projected_sr_img + upgraded_diff_sr_image*0.5
+    return back_projected_sr_img
+
+def gaussian_kernel(radius=2, sigma=1.0):
+    """Create a gaussian kernel with the given radius and sigma. Only support radius=1, 2.
+
+    @param radius: radius for gaussian kernel
+    @type radius: int
+    @param sigma:
+    @type sigma: float
+    @return: gaussian kernel
+    @rtype: L{PIL.ImageFilter.Kernel}
+    """
+    gaussian_kernel = create_gaussian_kernel(radius, sigma)
+    size = np.shape(gaussian_kernel)
+    return Kernel(size, list(gaussian_kernel.flatten()))
 
 
 
