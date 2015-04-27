@@ -11,7 +11,7 @@ class SRDataSet(object):
     def __init__(self, low_res_patches, high_res_patches):
         self._low_res_patches = low_res_patches
         self._high_res_patches = high_res_patches
-        self._neares_neighbor = None
+        self._nearest_neighbor = None
         self._need_update = True
 
     @classmethod
@@ -39,7 +39,7 @@ class SRDataSet(object):
         return self._high_res_patches
 
     def _update(self):
-        self._neares_neighbor = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(self._low_res_patches)
+        self._nearest_neighbor = NearestNeighbors(n_neighbors=9, algorithm='ball_tree').fit(self._low_res_patches)
         self._need_update = False
 
     def add(self, low_res_patches, high_res_patches):
@@ -76,7 +76,7 @@ class SRDataSet(object):
         """
         if self._need_update:
             self._update()
-        distances, indices = self._neares_neighbor.kneighbors(low_res_patches,
+        distances, indices = self._nearest_neighbor.kneighbors(low_res_patches,
                                                               n_neighbors=neighbors)
         neighbor_patches = self.high_res_patches[indices]
         return self._merge_high_res_patches(neighbor_patches, distances) if neighbors > 1 else neighbor_patches
