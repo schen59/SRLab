@@ -1,6 +1,6 @@
 __author__ = 'Sherwin'
 
-import numpy as np
+import sys
 from sr_dataset import SRDataSet
 from sr_util import sr_image_util
 
@@ -29,11 +29,13 @@ class ICCV09(object):
         reconstructed_sr_image = sr_image
         r = ratio ** (1.0/DEFAULT_RECONSTRUCT_LEVEL)
         for level in range(DEFAULT_RECONSTRUCT_LEVEL):
-            print "\rReconstructing %.2f%%" % (float(level) / DEFAULT_RECONSTRUCT_LEVEL * 100)
             reconstructed_sr_image = self._reconstruct(r, reconstructed_sr_image, sr_dataset)
             reconstructed_sr_image = sr_image_util.back_project(reconstructed_sr_image, sr_image, 3)
             new_sr_dataset = SRDataSet.from_sr_image(reconstructed_sr_image)
             sr_dataset.merge(new_sr_dataset)
+            sys.stdout.write("\rReconstructing %.2f%%" % (float(level) /
+                                                          DEFAULT_RECONSTRUCT_LEVEL * 100))
+            sys.stdout.flush()
         return reconstructed_sr_image
 
     def _reconstruct(self, ratio, sr_image, sr_dataset):
