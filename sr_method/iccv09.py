@@ -1,6 +1,7 @@
 __author__ = 'Sherwin'
 
 import sys
+import sr_util.profiler
 from sr_dataset import SRDataSet
 from sr_util import sr_image_util
 
@@ -15,6 +16,7 @@ class ICCV09(object):
     def get_method_type(self):
         return self._method_type
 
+    @sr_util.profiler.profiler
     def reconstruct(self, ratio, sr_image):
         """Reconstruct the SR image by the given ratio.
 
@@ -33,7 +35,7 @@ class ICCV09(object):
             reconstructed_sr_image = sr_image_util.back_project(reconstructed_sr_image, sr_image, 3)
             new_sr_dataset = SRDataSet.from_sr_image(reconstructed_sr_image)
             sr_dataset.merge(new_sr_dataset)
-            sys.stdout.write("\rReconstructing %.2f%%" % (float(level) /
+            sys.stdout.write("\rReconstructing %.2f%%" % (float(level+1) /
                                                           DEFAULT_RECONSTRUCT_LEVEL * 100))
             sys.stdout.flush()
         return reconstructed_sr_image

@@ -27,9 +27,9 @@ class TestSRImage(unittest.TestCase):
         self.assertEqual(patches_size[0], height*width)
         self.assertEqual(patches_size[1], 25)
 
-    #@unittest.skip("")
+    @unittest.skip("")
     def test_reconstruct(self):
-        reconstructed_sr_image = self.sr_image.reconstruct(2, 'iccv09')
+        reconstructed_sr_image = self.sr_image.reconstruct(4, 'iccv09')
         reconstructed_sr_image.save("test_data/babyface_sr.png", "png")
 
 if __name__ == "__main__":
