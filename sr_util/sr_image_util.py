@@ -115,7 +115,7 @@ def unpatchify(patches, output_array_size, kernel, overlap=1):
     if patch_dimension != np.shape(kernel.flatten())[0]:
         raise "Invalid kernel size, kernel size should be equal to patch size."
     patch_width = int(patch_dimension**(.5))
-    patch_radius = patch_width / 2;
+    patch_radius = patch_width / 2
     interval = patch_width - overlap
     padded_array_size = [d + 2*patch_radius for d in output_array_size]
     padded_array_height, padded_array_width = padded_array_size
@@ -130,7 +130,7 @@ def unpatchify(patches, output_array_size, kernel, overlap=1):
             patch_x = patches_x[i, j]
             patch_y = patches_y[i, j]
             padded_array[patch_y-patch_radius:patch_y+patch_radius+1, patch_x-patch_radius:patch_x+patch_radius+1] += \
-                np.reshape(patches[patch_idx], [patch_width, patch_width]) * kernel
+                np.reshape(patches[patch_idx], (patch_width, patch_width)) * kernel
             weight[patch_y-patch_radius:patch_y+patch_radius+1, patch_x-patch_radius:patch_x+patch_radius+1] += kernel
             patch_idx += 1
     padded_array /= weight

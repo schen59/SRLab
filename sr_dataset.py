@@ -53,6 +53,7 @@ class SRDataSet(object):
         """
         self._low_res_patches = np.concatenate((self._low_res_patches, low_res_patches))
         self._high_res_patches = np.concatenate((self._high_res_patches, high_res_patches))
+        self._need_update = True
 
     def merge(self, sr_dataset):
         """Merge with the given dataset.

@@ -4,3 +4,13 @@ SRLab
 Single image super resolution algorithm implementation (in progress)
 
 Project URL:http://shaofeng_2010.gegahost.net/SR/SingleImgSR.html
+
+Example:
+
+image = Image.open("test_data/babyface_4.png")
+sr_image = SRImageFactory.create_sr_image(image)
+reconstructed_sr_image = sr_image.reconstruct(2, 'iccv09')
+reconstructed_sr_image.save("test_data/babyface_sr.png", "png")
+
+Need to work more on performance, it will take around one hour to reconstruct a 200*200 image to
+2X its original size. 
