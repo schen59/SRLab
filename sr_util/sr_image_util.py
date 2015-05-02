@@ -210,6 +210,25 @@ def gaussian_kernel(radius=2, sigma=1.0):
     size = np.shape(gaussian_kernel)
     return Kernel(size, list(gaussian_kernel.flatten()))
 
+def decompose(image):
+    if image.getbands() == ('L',):
+        return image, None, None
+    elif image.getbands() == ('R', 'G', 'B'):
+        image = image.convert('YCbCr')
+        return image.split()
+    else:
+        raise SRException("Unsupported image color space {}".format(image.getbands()))
+
+def compose(y_image, cb_image, cr_image):
+    if cb_image and cr_image:
+        image = Image.merge("YCbCr", (y_image, cb_image, cr_image))
+        image = image.convert("RGB")
+        return image
+    else:
+        return y_image
+
+
+
 
 
 

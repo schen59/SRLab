@@ -1,5 +1,6 @@
 __author__ = 'Sherwin'
 
+import sr_util.sr_image_util
 from PIL import Image
 from sr_image import SRImage
 
@@ -26,4 +27,5 @@ class SRImageFactory(object):
         @return: an instance of SRImage
         @rtype: L{sr_image.SRImage}
         """
-        return SRImage(image.convert("L"))
+        y_image, cb_image, cr_image = sr_util.sr_image_util.decompose(image)
+        return SRImage(y_image, cb_image, cr_image)
