@@ -7,7 +7,9 @@ Project [Demo](http://shaofeng_2010.gegahost.net/SR/SingleImgSR.html)
 
 Requirement:
 pip install Pillow
+
 pip install scipy
+
 pip install -U numpy scipy scikit-learn
 
 Example:
@@ -20,5 +22,5 @@ reconstructed_sr_image = sr_image.reconstruct(2, 'iccv09')
 
 reconstructed_sr_image.save("test_data/babyface_sr.png", "png")
 
-Need to work more on performance, it will take around six minutes to reconstruct a 200*200 image to
-2X its original size, and take around 36 minutes to 4X its original size.(On i7 Cpu, 8G ram)
+Need to work more on performance, it will take around 2 minutes to reconstruct a 200*200 image to
+2X its original size, and take around 10 minutes to 4X its original size.(On i7 Cpu, 8G ram)

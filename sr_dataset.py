@@ -3,6 +3,8 @@ __author__ = 'Sherwin'
 import numpy as np
 from sr_util import sr_image_util
 from sklearn.neighbors import NearestNeighbors
+import multiprocessing
+from multiprocessing import Process, Manager
 DEFAULT_PYRAMID_LEVEL = 3
 DEFAULT_DOWNGRADE_RATIO = 1.25
 
@@ -64,22 +66,55 @@ class SRDataSet(object):
         high_res_patches = sr_dataset.high_res_patches
         self.add(low_res_patches, high_res_patches)
 
-    def query(self, low_res_patches, neighbors=1, eps=0.0):
+    def parallel_query(self, low_res_patches, neighbors=9):
+        """Query the high resolution patches for the given low resolution patches using
+        multiprocessing.
+        @param low_res_patches: given low resolution patches
+        @type low_res_patches: L{numpy.array}
+        @param neighbors: number of neighbors
+        @type neighbors: int
+        @return: high resolution patches in row vector form
+        @rtype: L{numpy.array}
+        """
+        cpu_count = multiprocessing.cpu_count()
+        patch_number, patch_dimension = np.shape(low_res_patches)
+        batch_number = patch_number / cpu_count + 1
+        jobs = []
+        result = Manager().dict()
+        for id in range(cpu_count):
+            batch = low_res_patches[id*batch_number:(id+1)*batch_number, :]
+            job = Process(target=self.query, args=(batch, neighbors, id, result))
+            jobs.append(job)
+            job.start()
+        for job in jobs:
+            job.join()
+        high_res_patches = np.concatenate(result.values())
+        return high_res_patches
+
+    def query(self, low_res_patches, neighbors=9, id=1, result=None):
         """Query the high resolution patches for the given low resolution patches.
 
         @param low_res_patches: low resolution patches
         @type low_res_patches: L{numpy.array}
         @param neighbors: number of neighbors to query for
         @type neighbors: int
+        @param id: id for subprocess, used for multiprocessing
+        @type id: int
+        @param result: shared dict between processes, used for multiprocessing
+        @type: L{multiprocessing.Manager.dict}
         @return: high resolution patches for the given low resolution patches
         @rtype: L{numpy.array}
         """
         if self._need_update:
             self._update()
         distances, indices = self._nearest_neighbor.kneighbors(low_res_patches,
-                                                              n_neighbors=neighbors)
+                                                               n_neighbors=neighbors)
         neighbor_patches = self.high_res_patches[indices]
-        return self._merge_high_res_patches(neighbor_patches, distances) if neighbors > 1 else neighbor_patches
+        high_res_patches = self._merge_high_res_patches(neighbor_patches, distances) if \
+            neighbors > 1 else neighbor_patches
+        if result is not None:
+            result[id] = high_res_patches
+        return high_res_patches
 
     def _merge_high_res_patches(self, neighbor_patches, distances):
         """Get the high resolution patches by merging the neighboring patches with the given distance as weight.
