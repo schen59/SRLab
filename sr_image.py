@@ -64,11 +64,25 @@ class SRImage(object):
         self._y_image.putdata(list(data.flatten()))
 
     def upgrade(self, size, kernel):
+        """Upgrade the image to the given size and blurred with given kernel.
+
+        @param size: target upgrade size
+        @param kernel: blur kernel
+        @return: upgraded image
+        @rtype: L{SRImage}
+        """
         upgraded_image = self._y_image.resize(size, Image.BICUBIC)
         blurred_image = upgraded_image.filter(kernel)
         return SRImage(blurred_image, self._cb_image, self._cr_image)
 
     def downgrade(self, size, kernel):
+        """Downgraded the image to given size and blurred with given kernel.
+
+        @param size: target downgrade size
+        @param kernel: blur kernel
+        @return: downgraded image
+        @rtype: L{SRImage}
+        """
         blurred_image = self._y_image.filter(kernel)
         downgraded_image = blurred_image.resize(size, Image.BICUBIC)
         return SRImage(downgraded_image, self._cb_image, self._cr_image)
