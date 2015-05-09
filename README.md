@@ -22,5 +22,5 @@ reconstructed_sr_image = sr_image.reconstruct(2, 'iccv09')
 
 reconstructed_sr_image.save("test_data/babyface_sr.png", "png")
 
-Need to work more on performance, it will take around 2 minutes to reconstruct a 200*200 image to
+Need to work more on performance, it will take around 2 minutes to reconstruct a 128*128 image to
 2X its original size, and take around 10 minutes to 4X its original size.(On i7 Cpu, 8G ram)

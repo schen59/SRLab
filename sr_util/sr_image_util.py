@@ -213,11 +213,8 @@ def gaussian_kernel(radius=2, sigma=1.0):
 def decompose(image):
     if image.getbands() == ('L',):
         return image, None, None
-    elif image.getbands() == ('R', 'G', 'B'):
-        image = image.convert('YCbCr')
-        return image.split()
-    else:
-        raise SRException("Unsupported image color space {}".format(image.getbands()))
+    image = image.convert('YCbCr')
+    return image.split()
 
 def compose(y_image, cb_image, cr_image):
     if cb_image and cr_image:
