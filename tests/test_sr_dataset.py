@@ -19,7 +19,7 @@ class TestSRDataset(unittest.TestCase):
 
     def test_query(self):
         low_res_patches = np.array([[1, 1]])
-        high_res_patches = self.sr_dataset.query(low_res_patches, neighbors=1)
+        high_res_patches = self.sr_dataset.query(low_res_patches)
         expected_high_res_patches = np.array([[2, 2]])
         self.assertTrue(np.array_equal(expected_high_res_patches, high_res_patches))
 
