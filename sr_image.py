@@ -49,7 +49,7 @@ class SRImage(object):
         @rtype: L{sr_image.SRImage}
         """
         size = sr_image_util.create_size(self._size, ratio)
-        resized_image = self._y_image.resize(size, Image.BILINEAR)
+        resized_image = self._y_image.resize(size, Image.BICUBIC)
         return SRImage(resized_image, self._cb_image, self._cr_image)
 
     def putdata(self, data):
@@ -72,7 +72,7 @@ class SRImage(object):
         @rtype: L{SRImage}
         """
         upgraded_image = self._y_image.resize(size, Image.BICUBIC)
-        blurred_image = upgraded_image.filter(kernel)
+        blurred_image = sr_image_util.filter(upgraded_image, kernel)
         return SRImage(blurred_image, self._cb_image, self._cr_image)
 
     def downgrade(self, size, kernel):
@@ -83,7 +83,7 @@ class SRImage(object):
         @return: downgraded image
         @rtype: L{SRImage}
         """
-        blurred_image = self._y_image.filter(kernel)
+        blurred_image = sr_image_util.filter(self._y_image, kernel)
         downgraded_image = blurred_image.resize(size, Image.BICUBIC)
         return SRImage(downgraded_image, self._cb_image, self._cr_image)
 
@@ -97,10 +97,10 @@ class SRImage(object):
         @return: downgraded image with same size as original image
         @rtype: L{sr_image.SRImage}
         """
-        size = sr_image_util.create_size(self._size, ratio)
-        blurred_image = self._y_image.filter(kernel)
-        downgraded_image = blurred_image.resize(size, Image.BILINEAR)
-        return SRImage(downgraded_image.resize(self._size, Image.BILINEAR), self._cb_image,
+        size = sr_image_util.create_size(self._size, 1.0/ratio)
+        blurred_image = sr_image_util.filter(self._y_image, kernel)
+        downgraded_image = blurred_image.resize(size, Image.BICUBIC)
+        return SRImage(downgraded_image.resize(self._size, Image.BICUBIC), self._cb_image,
                        self._cr_image)
 
     def get_pyramid(self, level, ratio):
@@ -115,9 +115,10 @@ class SRImage(object):
         """
         pyramid = []
         r = 1.0
-        for _ in range(level):
+        ALPHA = 2 ** (1.0/3)
+        for i in range(level):
             r *= ratio
-            gaussian_kernel = sr_image_util.gaussian_kernel(sigma=r)
+            gaussian_kernel = sr_image_util.gaussian_kernel(sigma=(ALPHA**i)/3.0)
             pyramid.append(self._downgrade(r, gaussian_kernel))
         return pyramid
 
@@ -133,9 +134,11 @@ class SRImage(object):
         return sr_image_util.patchify(image_array, patch_size, interval)
 
     def save(self, path, extension):
+        if self._y_image.mode == 'F':
+            self._y_image = self._y_image.convert("L")
         if self._cb_image and self._cr_image:
-            self._cb_image = self._cb_image.resize(self._size, Image.BILINEAR)
-            self._cr_image = self._cr_image.resize(self._size, Image.BILINEAR)
+            self._cb_image = self._cb_image.resize(self._size, Image.BICUBIC)
+            self._cr_image = self._cr_image.resize(self._size, Image.BICUBIC)
             image = sr_image_util.compose(self._y_image, self._cb_image, self._cr_image)
         else:
             image = self._y_image
@@ -145,7 +148,7 @@ class SRImage(object):
         my_image_data = list(self._y_image.getdata())
         other_image_data = list(other_sr_image.get_image().getdata())
         image_data = map(add, my_image_data, other_image_data)
-        image = Image.new("L", self._size)
+        image = Image.new("F", self._size)
         image.putdata(image_data)
         return SRImage(image, self._cb_image, self._cr_image)
 
@@ -153,14 +156,14 @@ class SRImage(object):
         my_image_data = list(self._y_image.getdata())
         other_image_data = list(other_sr_image.get_image().getdata())
         image_data = map(sub, my_image_data, other_image_data)
-        image = Image.new("L", self._size)
+        image = Image.new("F", self._size)
         image.putdata(image_data)
         return SRImage(image, self._cb_image, self._cr_image)
 
     def __mul__(self, factor):
         my_image_data = np.array(list(self._y_image.getdata()))
         image_data = my_image_data * factor
-        image = Image.new("L", self._size)
+        image = Image.new("F", self._size)
         image.putdata(list(image_data.flatten()))
         return SRImage(image, self._cb_image, self._cr_image)
 

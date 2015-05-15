@@ -6,7 +6,7 @@ from sklearn.neighbors import NearestNeighbors
 import multiprocessing
 from multiprocessing import Process, Manager
 DEFAULT_PYRAMID_LEVEL = 3
-DEFAULT_DOWNGRADE_RATIO = 1.25
+DEFAULT_DOWNGRADE_RATIO = 2 ** (1.0/3)
 DEFAULT_NEIGHBORS = 9
 
 class SRDataSet(object):
@@ -17,6 +17,7 @@ class SRDataSet(object):
         self._nearest_neighbor = None
         self._neighbors = neighbors
         self._need_update = True
+        self._update()
 
     @classmethod
     def from_sr_image(cls, sr_image):
@@ -28,10 +29,13 @@ class SRDataSet(object):
         @rtype: L{sr_dataset.SRDataset}
         """
         high_res_patches = sr_image_util.get_patches_without_dc(sr_image)
-        sr_dataset = SRDataSet(high_res_patches, high_res_patches)
+        sr_dataset = None
         for downgraded_sr_image in sr_image.get_pyramid(DEFAULT_PYRAMID_LEVEL, DEFAULT_DOWNGRADE_RATIO):
             low_res_patches = sr_image_util.get_patches_without_dc(downgraded_sr_image)
-            sr_dataset.add(low_res_patches, high_res_patches)
+            if sr_dataset is None:
+                sr_dataset = SRDataSet(low_res_patches, high_res_patches)
+            else:
+                sr_dataset.add(low_res_patches, high_res_patches)
         return sr_dataset
 
     @property
@@ -43,8 +47,8 @@ class SRDataSet(object):
         return self._high_res_patches
 
     def _update(self):
-        self._nearest_neighbor = NearestNeighbors(n_neighbors=self._neighbors,
-                                                  algorithm='ball_tree').fit(self._low_res_patches)
+        self._nearest_neighbor = NearestNeighbors(n_neighbors=self._neighbors, radius=None,
+                                                  algorithm='kd_tree').fit(self._low_res_patches)
         self._need_update = False
 
     def add(self, low_res_patches, high_res_patches):
@@ -77,6 +81,8 @@ class SRDataSet(object):
         @return: high resolution patches in row vector form
         @rtype: L{numpy.array}
         """
+        if self._need_update:
+            self._update()
         cpu_count = multiprocessing.cpu_count()
         patch_number, patch_dimension = np.shape(low_res_patches)
         batch_number = patch_number / cpu_count + 1
@@ -126,7 +132,7 @@ class SRDataSet(object):
         @rtype: L{numpy.array}
         """
         patch_number, neighbor_number, patch_dimension = np.shape(neighbor_patches)
-        weights = sr_image_util.normalize(np.exp(distances))
+        weights = sr_image_util.normalize(np.exp(-0.25*distances))
         weights = weights[:, np.newaxis].reshape(patch_number, neighbor_number, 1)
         high_res_patches = np.sum(neighbor_patches*weights, axis=1)
         return high_res_patches

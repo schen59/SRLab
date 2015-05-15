@@ -21,16 +21,12 @@ class TestSRImage(unittest.TestCase):
             self.assertEqual(self.sr_image.size, downgraded_sr_image.size)
 
     def test_patchify(self):
-        patches = self.sr_image.patchify([5, 5])
+        patch_width = 5
+        patches = self.sr_image.patchify([patch_width, patch_width])
         height, width = self.sr_image.size
         patches_size = np.shape(patches)
-        self.assertEqual(patches_size[0], height*width)
+        self.assertEqual(patches_size[0], (height+1)*(width+1))
         self.assertEqual(patches_size[1], 25)
-
-    #@unittest.skip("")
-    def test_reconstruct(self):
-        reconstructed_sr_image = self.sr_image.reconstruct(2, 'iccv09')
-        reconstructed_sr_image.save("test_data/babyface_sr.png", "png")
 
 if __name__ == "__main__":
     unittest.main()

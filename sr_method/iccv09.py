@@ -27,6 +27,7 @@ class ICCV09(object):
         @return: reconstructed SR image
         @rtype: L{sr_image.SRImage}
         """
+        sr_image = sr_image * (1.0/255)
         sr_dataset = SRDataSet.from_sr_image(sr_image)
         reconstructed_sr_image = sr_image
         r = ratio ** (1.0/DEFAULT_RECONSTRUCT_LEVEL)
@@ -38,7 +39,7 @@ class ICCV09(object):
             sys.stdout.write("\rReconstructing %.2f%%" % (float(level+1) /
                                                           DEFAULT_RECONSTRUCT_LEVEL * 100))
             sys.stdout.flush()
-        return reconstructed_sr_image
+        return reconstructed_sr_image * 255
 
     def _reconstruct(self, ratio, sr_image, sr_dataset):
         """Reconstruct a SRImage using the given SRDataset by the given ratio.

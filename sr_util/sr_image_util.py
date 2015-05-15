@@ -1,8 +1,8 @@
 __author__ = 'Sherwin'
 
 import numpy as np
+import scipy.signal
 from PIL import Image
-from PIL.ImageFilter import Kernel
 from sr_exception.sr_exception import SRException
 
 DEFAULT_PATCH_SIZE = [5, 5]
@@ -20,7 +20,7 @@ def create_size(size, ratio):
     @return: new size
     @rtype: list
     """
-    new_size = map(int, [dimension*ratio for dimension in size])
+    new_size = map(int, [dimension*ratio+0.5 for dimension in size])
     return new_size
 
 def create_gaussian_kernel(radius=2, sigma=1.0):
@@ -34,7 +34,7 @@ def create_gaussian_kernel(radius=2, sigma=1.0):
     @rtype: L{numpy.array}
     """
     y, x = np.mgrid[-radius:radius+1, -radius:radius+1]
-    unnormalized_kernel = np.exp(-(x**2 + y**2)//2*sigma*sigma)
+    unnormalized_kernel = np.exp(-(x**2 + y**2)//(2*sigma*sigma))
     return unnormalized_kernel / np.sum(unnormalized_kernel)
 
 def _valid_patch_size(patch_size):
@@ -63,6 +63,12 @@ def _valid_patch_dimension(patch_dimension):
     patch_width = patch_dimension / patch_height
     return _valid_patch_size([patch_height, patch_width])
 
+def get_pad_size(height, width, patch_width, interval):
+    patch_radius = patch_width / 2
+    pad_height = patch_width - patch_radius - height%interval
+    pad_width = patch_width - patch_radius - width%interval
+    return (pad_height, pad_width)
+
 def patchify(array, patch_size, interval=1):
     """Create a list of patches by sampling the given array in row-major order with the given patch size
     and interval between patches.
@@ -83,7 +89,9 @@ def patchify(array, patch_size, interval=1):
     patch_dimension = patch_width * patch_width
     patch_radius = patch_width / 2
     patch_y, patch_x = np.mgrid[-patch_radius:patch_radius+1, -patch_radius:patch_radius+1]
-    pad_array = np.pad(array, (patch_radius, patch_radius), 'reflect')
+    array_height, array_width = np.shape(array)
+    pad_height, pad_width = get_pad_size(array_height, array_width, patch_width, interval)
+    pad_array = np.pad(array, ((patch_radius, pad_height), (patch_radius, pad_width)), 'reflect')
     padded_height, padded_width = np.shape(pad_array)
     patches_y, patches_x = np.mgrid[patch_radius:padded_height-patch_radius:interval,
                            patch_radius:padded_width-patch_radius:interval]
@@ -117,7 +125,9 @@ def unpatchify(patches, output_array_size, kernel, overlap=1):
     patch_width = int(patch_dimension**(.5))
     patch_radius = patch_width / 2
     interval = patch_width - overlap
-    padded_array_size = [d + 2*patch_radius for d in output_array_size]
+    output_array_height, output_array_width = output_array_size
+    pad_size = get_pad_size(output_array_height, output_array_width, patch_width, interval)
+    padded_array_size = [d + patch_radius + p for d, p in zip(output_array_size, pad_size)]
     padded_array_height, padded_array_width = padded_array_size
     padded_array = np.zeros(padded_array_size)
     weight = np.zeros(padded_array_size)
@@ -134,7 +144,9 @@ def unpatchify(patches, output_array_size, kernel, overlap=1):
             weight[patch_y-patch_radius:patch_y+patch_radius+1, patch_x-patch_radius:patch_x+patch_radius+1] += kernel
             patch_idx += 1
     padded_array /= weight
-    return padded_array[patch_radius:padded_array_height-patch_radius, patch_radius:padded_array_width-patch_radius]
+    output_array_height, output_array_width = output_array_size
+    return padded_array[patch_radius:output_array_height+patch_radius,
+           patch_radius:output_array_width+patch_radius]
 
 def normalize(array):
     """Normalize the row vector of a 2D array.
@@ -186,7 +198,7 @@ def back_project(high_res_sr_img, low_res_sr_img, iteration):
     high_res_sr_img_height = high_res_sr_img.size[0]
     low_res_sr_img_height = low_res_sr_img.size[0]
     ratio = float(high_res_sr_img_height) / low_res_sr_img_height
-    sigma = ALPHA**ratio / 3.0
+    sigma = ratio / 3.0
     g_kernel = gaussian_kernel(sigma=sigma)
     back_projected_sr_img = high_res_sr_img
     for i in range(iteration):
@@ -204,11 +216,10 @@ def gaussian_kernel(radius=2, sigma=1.0):
     @param sigma:
     @type sigma: float
     @return: gaussian kernel
-    @rtype: L{PIL.ImageFilter.Kernel}
+    @rtype: L{numpy.array}
     """
     gaussian_kernel = create_gaussian_kernel(radius, sigma)
-    size = np.shape(gaussian_kernel)
-    return Kernel(size, list(gaussian_kernel.flatten()))
+    return gaussian_kernel
 
 def decompose(image):
     if image.getbands() == ('L',):
@@ -223,6 +234,13 @@ def compose(y_image, cb_image, cr_image):
         return image
     else:
         return y_image
+
+def filter(image, kernel):
+    image_data = np.array(list(image.getdata())).reshape(image.size)
+    image_data = scipy.signal.convolve2d(image_data, kernel, mode='same', boundary='symm')
+    im = Image.new("F", image.size)
+    im.putdata(list(image_data.flatten()))
+    return im
 
 
 
