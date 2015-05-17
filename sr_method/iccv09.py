@@ -1,11 +1,13 @@
 __author__ = 'Sherwin'
 
+import math
 import sys
 import sr_util.profiler
 from sr_dataset import SRDataSet
 from sr_util import sr_image_util
 
 DEFAULT_RECONSTRUCT_LEVEL = 6
+ALPHA = 2 ** (1.0/3)
 
 class ICCV09(object):
 
@@ -27,19 +29,20 @@ class ICCV09(object):
         @return: reconstructed SR image
         @rtype: L{sr_image.SRImage}
         """
-        sr_image = sr_image * (1.0/255)
         sr_dataset = SRDataSet.from_sr_image(sr_image)
         reconstructed_sr_image = sr_image
-        r = ratio ** (1.0/DEFAULT_RECONSTRUCT_LEVEL)
-        for level in range(DEFAULT_RECONSTRUCT_LEVEL):
+        construct_level = int(math.log(ratio, ALPHA) + 0.5)
+        r = ALPHA
+        for level in range(construct_level):
             reconstructed_sr_image = self._reconstruct(r, reconstructed_sr_image, sr_dataset)
-            reconstructed_sr_image = sr_image_util.back_project(reconstructed_sr_image, sr_image, 3)
+            reconstructed_sr_image = sr_image_util.back_project(reconstructed_sr_image, sr_image,
+                                                                3, level+1)
             new_sr_dataset = SRDataSet.from_sr_image(reconstructed_sr_image)
             sr_dataset.merge(new_sr_dataset)
             sys.stdout.write("\rReconstructing %.2f%%" % (float(level+1) /
-                                                          DEFAULT_RECONSTRUCT_LEVEL * 100))
+                                                          construct_level * 100))
             sys.stdout.flush()
-        return reconstructed_sr_image * 255
+        return reconstructed_sr_image
 
     def _reconstruct(self, ratio, sr_image, sr_dataset):
         """Reconstruct a SRImage using the given SRDataset by the given ratio.

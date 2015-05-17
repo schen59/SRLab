@@ -47,7 +47,7 @@ class SRDataSet(object):
         return self._high_res_patches
 
     def _update(self):
-        self._nearest_neighbor = NearestNeighbors(n_neighbors=self._neighbors, radius=None,
+        self._nearest_neighbor = NearestNeighbors(n_neighbors=self._neighbors,
                                                   algorithm='kd_tree').fit(self._low_res_patches)
         self._need_update = False
 

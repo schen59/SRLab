@@ -2,6 +2,7 @@ __author__ = 'Sherwin'
 
 import numpy as np
 from PIL import Image
+from PIL import ImageFilter
 from sr_util import sr_image_util
 from sr_factory.sr_method_factory import SRMethodFactory
 from operator import add
@@ -9,11 +10,11 @@ from operator import sub
 
 class SRImage(object):
 
-    def __init__(self, y_image, cb_image=None, cr_image=None):
+    def __init__(self, y_data, cb_data=None, cr_data=None):
 
-        self._y_image = y_image
-        self._cb_image, self._cr_image = cb_image, cr_image
-        self._size = y_image.size
+        self._y_data = y_data
+        self._cb_data, self._cr_data = cb_data, cr_data
+        self._size = np.shape(self._y_data)
 
     @property
     def size(self):
@@ -24,8 +25,8 @@ class SRImage(object):
         """
         return self._size
 
-    def get_image(self):
-        return self._y_image
+    def get_data(self):
+        return self._y_data
 
     def reconstruct(self, ratio, method_type):
         """Reconstruct a SR image by the given SR method.
@@ -48,9 +49,9 @@ class SRImage(object):
         @return: a resized copy of the original SRImage
         @rtype: L{sr_image.SRImage}
         """
-        size = sr_image_util.create_size(self._size, ratio)
-        resized_image = self._y_image.resize(size, Image.BICUBIC)
-        return SRImage(resized_image, self._cb_image, self._cr_image)
+        size = sr_image_util.create_size(self.size, ratio)
+        resized_image = sr_image_util.resize(self._y_data, size)
+        return SRImage(resized_image, self._cb_data, self._cr_data)
 
     def putdata(self, data):
         """Update the SRImage instance by the given data.
@@ -61,7 +62,7 @@ class SRImage(object):
         size = np.shape(data)
         if self._size != size:
             raise "Invalid image data, data size not equal to image size %s." % self._size
-        self._y_image.putdata(list(data.flatten()))
+        self._y_data = data
 
     def upgrade(self, size, kernel):
         """Upgrade the image to the given size and blurred with given kernel.
@@ -71,9 +72,9 @@ class SRImage(object):
         @return: upgraded image
         @rtype: L{SRImage}
         """
-        upgraded_image = self._y_image.resize(size, Image.BICUBIC)
+        upgraded_image = sr_image_util.resize(self._y_data, size)
         blurred_image = sr_image_util.filter(upgraded_image, kernel)
-        return SRImage(blurred_image, self._cb_image, self._cr_image)
+        return SRImage(blurred_image, self._cb_data, self._cr_data)
 
     def downgrade(self, size, kernel):
         """Downgraded the image to given size and blurred with given kernel.
@@ -83,9 +84,9 @@ class SRImage(object):
         @return: downgraded image
         @rtype: L{SRImage}
         """
-        blurred_image = sr_image_util.filter(self._y_image, kernel)
-        downgraded_image = blurred_image.resize(size, Image.BICUBIC)
-        return SRImage(downgraded_image, self._cb_image, self._cr_image)
+        blurred_image = sr_image_util.filter(self._y_data, kernel)
+        downgraded_image = sr_image_util.resize(blurred_image, size)
+        return SRImage(downgraded_image, self._cb_data, self._cr_data)
 
     def _downgrade(self, ratio, kernel):
         """Downgrade the original SR image with the given ratio and blur kernel.
@@ -93,15 +94,15 @@ class SRImage(object):
         @param ratio: downgrade ratio
         @type ratio: float
         @param kernel: blur kernel
-        @type kernel: L{PIL.ImageFilter.Kernel}
+        @type kernel: L{numpy.array}
         @return: downgraded image with same size as original image
         @rtype: L{sr_image.SRImage}
         """
-        size = sr_image_util.create_size(self._size, 1.0/ratio)
-        blurred_image = sr_image_util.filter(self._y_image, kernel)
-        downgraded_image = blurred_image.resize(size, Image.BICUBIC)
-        return SRImage(downgraded_image.resize(self._size, Image.BICUBIC), self._cb_image,
-                       self._cr_image)
+        size = sr_image_util.create_size(self.size, 1.0/ratio)
+        blurred_image = sr_image_util.filter(self._y_data, kernel)
+        downgraded_image = sr_image_util.resize(blurred_image, size)
+        downgraded_image = sr_image_util.resize(downgraded_image, self._size)
+        return SRImage(downgraded_image, self._cb_data, self._cr_data)
 
     def get_pyramid(self, level, ratio):
         """Get a pyramid of SR images from the original image.
@@ -130,41 +131,31 @@ class SRImage(object):
         @return: an array contains all the patches from the image
         @rtype: L{numpy.array}
         """
-        image_array = np.reshape(np.array(list(self._y_image.getdata())), self._size)
+        image_array = self._y_data
         return sr_image_util.patchify(image_array, patch_size, interval)
 
     def save(self, path, extension):
-        if self._y_image.mode == 'F':
-            self._y_image = self._y_image.convert("L")
-        if self._cb_image and self._cr_image:
-            self._cb_image = self._cb_image.resize(self._size, Image.BICUBIC)
-            self._cr_image = self._cr_image.resize(self._size, Image.BICUBIC)
-            image = sr_image_util.compose(self._y_image, self._cb_image, self._cr_image)
-        else:
-            image = self._y_image
+        if self._cb_data is not None and self._cr_data is not None:
+            self._cb_data = sr_image_util.resize(self._cb_data, self._size)
+            self._cr_data = sr_image_util.resize(self._cr_data, self._size)
+        image = sr_image_util.compose(self._y_data, self._cb_data, self._cr_data)
         image.save(path, extension)
 
     def __add__(self, other_sr_image):
-        my_image_data = list(self._y_image.getdata())
-        other_image_data = list(other_sr_image.get_image().getdata())
-        image_data = map(add, my_image_data, other_image_data)
-        image = Image.new("F", self._size)
-        image.putdata(image_data)
-        return SRImage(image, self._cb_image, self._cr_image)
+        my_image_data = self._y_data
+        other_image_data = other_sr_image.get_data()
+        image_data = my_image_data + other_image_data
+        return SRImage(image_data, self._cb_data, self._cr_data)
 
     def __sub__(self, other_sr_image):
-        my_image_data = list(self._y_image.getdata())
-        other_image_data = list(other_sr_image.get_image().getdata())
-        image_data = map(sub, my_image_data, other_image_data)
-        image = Image.new("F", self._size)
-        image.putdata(image_data)
-        return SRImage(image, self._cb_image, self._cr_image)
+        my_image_data = self._y_data
+        other_image_data = other_sr_image.get_data()
+        image_data = my_image_data - other_image_data
+        return SRImage(image_data, self._cb_data, self._cr_data)
 
     def __mul__(self, factor):
-        my_image_data = np.array(list(self._y_image.getdata()))
+        my_image_data = self._y_data
         image_data = my_image_data * factor
-        image = Image.new("F", self._size)
-        image.putdata(list(image_data.flatten()))
-        return SRImage(image, self._cb_image, self._cr_image)
+        return SRImage(image_data, self._cb_data, self._cr_data)
 
 

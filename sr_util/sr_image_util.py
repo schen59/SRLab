@@ -2,8 +2,12 @@ __author__ = 'Sherwin'
 
 import numpy as np
 import scipy.signal
+import scipy.ndimage.filters
+import scipy.ndimage.interpolation
+import scipy.misc
 from PIL import Image
 from sr_exception.sr_exception import SRException
+import scipy.ndimage.filters
 
 DEFAULT_PATCH_SIZE = [5, 5]
 INVALID_PATCH_SIZE_ERR = "Invalid patch size %s, patch should be square with odd size."
@@ -194,11 +198,8 @@ def get_dc(patches):
     patches_dc = np.tile(patches_dc, [w, 1]).transpose()
     return patches_dc
 
-def back_project(high_res_sr_img, low_res_sr_img, iteration):
-    high_res_sr_img_height = high_res_sr_img.size[0]
-    low_res_sr_img_height = low_res_sr_img.size[0]
-    ratio = float(high_res_sr_img_height) / low_res_sr_img_height
-    sigma = ratio / 3.0
+def back_project(high_res_sr_img, low_res_sr_img, iteration, level):
+    sigma = (ALPHA ** level) / 3.0
     g_kernel = gaussian_kernel(sigma=sigma)
     back_projected_sr_img = high_res_sr_img
     for i in range(iteration):
@@ -223,25 +224,47 @@ def gaussian_kernel(radius=2, sigma=1.0):
 
 def decompose(image):
     if image.getbands() == ('L',):
-        return image, None, None
+        return image_to_data(image), None, None
     image = image.convert('YCbCr')
-    return image.split()
+    return [image_to_data(im) for im in image.split()]
 
-def compose(y_image, cb_image, cr_image):
-    if cb_image and cr_image:
+def compose(y_data, cb_data, cr_data):
+    y_image = data_to_image(y_data)
+    if cb_data is not None and cr_data is not None:
+        cb_image = data_to_image(cb_data)
+        cr_image = data_to_image(cr_data)
         image = Image.merge("YCbCr", (y_image, cb_image, cr_image))
         image = image.convert("RGB")
         return image
     else:
         return y_image
 
-def filter(image, kernel):
-    image_data = np.array(list(image.getdata())).reshape(image.size)
-    image_data = scipy.signal.convolve2d(image_data, kernel, mode='same', boundary='symm')
-    im = Image.new("F", image.size)
-    im.putdata(list(image_data.flatten()))
-    return im
+def filter(image_data, kernel):
+    image_data = scipy.ndimage.filters.convolve(image_data, kernel, mode='reflect')
+    return image_data
 
+def resize(image_data, size):
+    image = data_to_image(image_data, 'F')
+    image = image.resize((size[1], size[0]), Image.BICUBIC)
+    resized_image_data = image_to_data(image)
+    return resized_image_data
+
+def image_to_data(image):
+    shape = image.size[1], image.size[0]
+    image_data = np.array(list(image.getdata())).reshape(shape)
+    return image_data / 255.0
+
+def data_to_image(image_data, mode='L'):
+    size = (np.shape(image_data)[1], np.shape(image_data)[0])
+    image = Image.new(mode, size)
+    image_data = list(image_data.flatten() * 255)
+    image_data = map(int, image_data)
+    image.putdata(image_data)
+    return image
+
+def show(image_data):
+    im = compose(image_data*255, None, None)
+    im.show()
 
 
 
