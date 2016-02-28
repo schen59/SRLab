@@ -18,7 +18,9 @@ More Project [Demo](http://shaofeng_2010.gegahost.net/SR/SingleImgSR.html)
 Requirement:
 pip install Pillow
 
-pip install scipy
+pip install mock==1.0.1
+
+pip install six
 
 pip install -U numpy scipy scikit-learn
 
