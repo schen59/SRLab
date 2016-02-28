@@ -36,3 +36,14 @@ reconstructed_sr_image.save("test_data/babyface_sr.png", "png")
 
 Need to work more on performance, it will take around 20 seconds to reconstruct a 128*128 image to
 2X its original size, and take around 1 minutes to 4X its original size.(On i7 Cpu, 8G ram)
+
+Run the examples in example/sr_image_example.py:
+
+Add root directory of SRLab to PYTHONPATH:
+export PYTHONPATH=$PYTHONPATH:~/schen59/SRLab
+
+Go to the example directory:
+cd example
+
+Run the example script:
+python sr_image_example.py
