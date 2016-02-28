@@ -3,7 +3,17 @@ SRLab
 
 Single image super resolution algorithm implementation (in progress)
 
-Project [Demo](http://shaofeng_2010.gegahost.net/SR/SingleImgSR.html)
+Demo:
+
+Source(128X128)
+
+![Source(128X128):](test_data/babyface_4.png)
+
+4X
+
+![4X](test_data/babyface_4x.png)
+
+More Project [Demo](http://shaofeng_2010.gegahost.net/SR/SingleImgSR.html)
 
 Requirement:
 pip install Pillow
