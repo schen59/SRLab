@@ -15,6 +15,7 @@ Single image super resolution algorithm implementation (in progress)
 More Project [Demo](http://shaofeng_2010.gegahost.net/SR/SingleImgSR.html)
 
 ## Requirement:
+* Supported python version 2.7
 
 * pip install Pillow
 
