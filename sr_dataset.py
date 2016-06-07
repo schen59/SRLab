@@ -20,7 +20,7 @@ class SRDataSet(object):
         self._update()
 
     @classmethod
-    def from_sr_image(cls, sr_image):
+    def from_sr_image(cls, sr_image, pyramid_level=DEFAULT_PYRAMID_LEVEL, downgrade_ratio=DEFAULT_DOWNGRADE_RATIO):
         """Create a SRDataset object from a SRImage object.
 
         @param sr_image:
@@ -30,7 +30,7 @@ class SRDataSet(object):
         """
         high_res_patches = sr_image_util.get_patches_without_dc(sr_image)
         sr_dataset = None
-        for downgraded_sr_image in sr_image.get_pyramid(DEFAULT_PYRAMID_LEVEL, DEFAULT_DOWNGRADE_RATIO):
+        for downgraded_sr_image in sr_image.get_pyramid(pyramid_level, downgrade_ratio):
             low_res_patches = sr_image_util.get_patches_without_dc(downgraded_sr_image)
             if sr_dataset is None:
                 sr_dataset = SRDataSet(low_res_patches, high_res_patches)
